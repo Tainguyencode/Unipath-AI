@@ -1,6 +1,6 @@
 <?php
 function callDeepSeekChatHistory($chat_history, $model ) {
-    $api_key = "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";
+    $api_key = "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";
     $url = "https://openrouter.ai/api/v1/chat/completions";
     
     // cấu trúc gửi tới AI 

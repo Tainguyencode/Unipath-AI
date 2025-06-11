@@ -1,35 +1,45 @@
 <?php
 session_start();
-   $accountFile='accounts.txt';
-   $error="";
-     // Kiểm tra người dùng khi ấn nút đăng nhập
-     if(isset($_POST["login"])){
-        $username=htmlspecialchars(trim($_POST["username"]));
-        $password=htmlspecialchars(trim($_POST["password"]));
+include 'Account.php'; // Kết nối database từ file Account.php
 
-        if(empty($username) || empty($password)){
-            $error= "Vui lòng nhập đầy đủ thông tin";
-        }else{
-            $accounts = file_exists($accountFile) ? file($accountFile, FILE_IGNORE_NEW_LINES) : [];
-            $isAuthenticated=false;// xác thực
-             foreach($accounts as $account){
-                list($storedUser,$storedEmail,$storedPass) = explode('|', $account);
-                if ($storedUser === $username && $storedPass === $password) {
-                $isAuthenticated = true;
+$error = "";
+
+if (isset($_POST['login'])) {
+    $username = htmlspecialchars(trim($_POST['username']));
+    $password = htmlspecialchars(trim($_POST['password']));
+
+    if (empty($username) || empty($password)) {
+        $error = "Vui lòng nhập đầy đủ thông tin";
+    } else {
+        // Lấy thông tin tài khoản từ database (bao gồm cả id và password)
+        // Sử dụng biến $conn từ Account.php
+        $stmt = $conn->prepare("SELECT id, password FROM account WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $stmt->store_result();
+
+        if ($stmt->num_rows == 1) {
+            // Liên kết cột 'id' và 'password' với các biến PHP
+            $stmt->bind_result($userId, $hashedPassword);
+            $stmt->fetch();
+
+            if (password_verify($password, $hashedPassword)) {
+                // Đăng nhập thành công
                 $_SESSION['username'] = $username;
-                $success = "Đăng nhập thành công! Xin chào, $username.";
-                header("Location: index.php"); // trang sau khi đăng nhập thành công
-                exit();
+                $_SESSION['user_id'] = $userId; // <<< THÊM DÒNG NÀY: Lưu user_id vào session
+
+                header("Location: index.php"); // Chuyển hướng đến trang chính
+                exit;
+            } else {
+                $error = "Mật khẩu không đúng.";
             }
-        }if(!$isAuthenticated) {
-            $error = "Tên đăng nhâp hoặc mật khẩu không đúng.";
+        } else {
+            $error = "Tên đăng nhập không tồn tại.";
         }
-     }
+
+        $stmt->close();
     }
-    
-
-
-
+}
 ?>
 
 <!DOCTYPE html>

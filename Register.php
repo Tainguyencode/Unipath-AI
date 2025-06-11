@@ -1,49 +1,46 @@
 <?php
 session_start();
-        // Tên file chứa thông tin tài khoản người dùng đã đăng ký
-        $accountFile='accounts.txt';
-        $error="";
-        $success="";
-        // Kiếm tra người dùng có ấn vào nút đăng ký 
-        if(isset($_POST["resgister"])){
-            $username=htmlspecialchars(trim($_POST["new_username"]));
-            $email=htmlspecialchars(trim($_POST["email"]));
-            $password=htmlspecialchars(trim($_POST["new_password"]));
+include 'Account.php'; // Kết nối database từ file Account.php
 
-            // kiểm tra xem người dùng có bị bỏ trống không
-            if($username== ""|| $email== "" || $password== ""){
-                $error= "Vui lòng nhập đày đủ thông tin";
-            }else{
-                // Đọc tất cả các tài khoản đã tồn tại (nếu có )
-                $existing=file_exists($accountFile)? file($accountFile,FILE_IGNORE_NEW_LINES) : [];
-                // nếu đã lấy 
-                $isTaken=false;
+$error = "";
+$success = "";
 
-              // Kiểm tra tên hoặc email đã tồn tại hay chưa
-              foreach($existing as $account){
-                list($storedUser, $storedEmail, ) = explode('|', $account);
-             if ($storedUser === $username || $storedEmail === $email) {
-                $isTaken = true;
-                break;
-              }
+if (isset($_POST['register'])) { // Đã sửa tên nút từ 'resgister' thành 'register'
+    $username = htmlspecialchars(trim($_POST['new_username']));
+    $email = htmlspecialchars(trim($_POST['email']));
+    $password = htmlspecialchars(trim($_POST['new_password']));
 
+    if (empty($username) || empty($email) || empty($password)) {
+        $error = "Vui lòng nhập đầy đủ thông tin";
+    } else {
+        // Kiểm tra username hoặc email đã tồn tại chưa
+        // Sử dụng biến $conn từ Account.php
+        $stmt = $conn->prepare("SELECT id FROM account WHERE username = ? OR email = ?");
+        $stmt->bind_param("ss", $username, $email);
+        $stmt->execute();
+        $stmt->store_result();
+
+        if ($stmt->num_rows > 0) {
+            $error = "Tên đăng nhập hoặc email đã tồn tại.";
+        } else {
+            // Mã hóa mật khẩu và lưu vào database
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            // Sử dụng biến $conn từ Account.php
+            $stmt = $conn->prepare("INSERT INTO account (username, email, password) VALUES (?, ?, ?)");
+            $stmt->bind_param("sss", $username, $email, $hashedPassword);
+
+            if ($stmt->execute()) {
+                $_SESSION['username'] = $username;
+                header("Location: index.php");
+                exit;
+            } else {
+                $error = "Lỗi khi tạo tài khoản: " . $conn->error;
             }
-        // nếu tên và email đã tồn tại báo lỗi
-        if($isTaken) {
-            $error= 'Tên đăng nhập hoặc email đã tồn tại.';
-        }else{
-            // Nếu hợp lệ thêm tài khoản mới vô file
-            $entry=$username."|".$email."|".$password."\n";
-            file_put_contents($accountFile, $entry,FILE_APPEND);
-            $success= "Đăng ký thành công!";//
-            $_SESSION["username"]=$username;
-            header("Location:index.php");
-            exit;
         }
-    }
-    }
 
-
+        $stmt->close();
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -134,7 +131,7 @@ session_start();
         <label for="">Mật khẩu:</label>
         <input type="password" name="new_password" required><br>
 
-        <button type="submit" name="resgister">Đăng ký</button>
+        <button type="submit" name="register">Đăng ký</button>
     </form>
     <div class="link">
     <p>Bạn đã có tài khoản? <a href="login.php">Đăng nhập</a></p>

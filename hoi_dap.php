@@ -37,7 +37,7 @@ if($_SERVER["REQUEST_METHOD"]=="POST"){
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hỏi đáp</title>
     <style>
-    *{
+        *{
             box-sizing: border-box;
             margin: 0;
             padding: 0;
@@ -62,12 +62,23 @@ if($_SERVER["REQUEST_METHOD"]=="POST"){
             margin-top:15px;
             margin-bottom: 15px;
         }
-        input[type="text"]{
+        select,input[type="text"]{
             width: 100%;
             padding: 15px;
             border-radius: 9px;
             border: 1px solid #ccc;
             font-size: 15px;
+            transition: all 0.3s ease;
+        }
+        select:hover, input[type="text"]:hover{
+            box-shadow: 0 0 10px rgba(46, 125, 50, 0.4);
+            border-color: #2e7d32;
+            background-color: #f1fff4;
+        }
+        select:focus, input[type="text"]:focus{
+                outline: none;
+                box-shadow: 0 0 12px rgba(46, 125, 50, 0.6);
+                border-color: #2e7d32 ;
         }
         button{
             padding: 12px 20px;
@@ -108,7 +119,23 @@ if($_SERVER["REQUEST_METHOD"]=="POST"){
             text-align: center;
            color: #2e7d32;
         }
-        </style>
+         .spinner {
+            border: 4px solid rgba(0, 0, 0, .1);
+            border-left-color: #2e7d32; /* Màu của phần quay */
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+       }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 <body>
     <h2>Phần hỏi đáp</h2>
@@ -116,17 +143,21 @@ if($_SERVER["REQUEST_METHOD"]=="POST"){
     <form action="" method="post">
 
         <label for="">Chọn mô hình AI mà bạn muốn trò chuyện:</label>
-        <select name="model" id="model">
+        <select name="model" id="model" title="Chọn mô hình AI để tương tác">
             <option value="deepseek/deepseek-chat-v3-0324:free" <?php echo ($model_selected == 'deepseek/deepseek-chat-v3-0324:free') ? 'selected' : ''; ?>>Deepseek chat</option>
             <option value="deepseek/deepseek-r1:free" <?php echo ($model_selected == 'deepseek/deepseek-r1:free') ? 'selected' : ''; ?>>Deepseek r1</option>
             <option value="google/gemini-2.0-flash-exp:free" <?php echo ($model_selected == 'google/gemini-2.0-flash-exp:free') ? 'selected' : ''; ?>>Gemini-2.0-flash</option>
         </select><br><br>
 
         <label for="">Câu hỏi của bạn:</label>
-        <input type="text" name="question" required placeholder="Mời bạn nhập câu hỏi"><br><br>
+        <input type="text" name="question" placeholder="Mời bạn nhập câu hỏi" title="Bạn có thể hỏi bất cứ điều gì mà bạn muốn AI trả lời"><br><br>
 
         <button type="submit">Gửi câu hỏi</button>
          <a href="index.php">Quay lại</a>
+         <div id="loading" style="display: none; text-align:center; margin-top: 20px;">
+    <div class="spinner"></div>
+       <p>Đang trả lời câu hỏi của bạn.....</p>
+    </div>
     </form>
     <?php if (!empty($_SESSION["chat_history_hd"])): ?>
     <div id="result">
@@ -136,5 +167,32 @@ if($_SERVER["REQUEST_METHOD"]=="POST"){
         <?php endforeach;?>
     </div>
     <?php endif; ?>
+    <script>
+       // kiểm tra dữ liệu trước khi submit
+         document.querySelector("form").addEventListener("submit",function(e){
+            const submitButton=document.activeElement;
+            const loading=document.getElementById("loading");
+        
+            let question=document.querySelector("input[name='question']").value.trim();
+            
+
+            if(!question){
+                alert("Vui lòng nhập nhập câu hỏi trước khi gửi");
+                e.preventDefault();// ngăn form submit
+                loading.style.display="none";
+            }else{
+                  // Nếu tất cả các trường đều có dữ liệu, hiển thị loading
+                   loading.style.display = "block";
+            }
+         });
+         // Đảm bảo loading ẩn đi khi trang tải lại hoàn tất 
+         window.addEventListener('load',()=>{
+            const loading=document.getElementById("loading");
+            if(loading){
+                loading.style.display="none";
+            }
+         });
+
+    </script>
 </body>
 </html>
